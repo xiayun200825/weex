@@ -105,6 +105,27 @@
     [invocation retainArguments];
     [invocation invoke];
     
+    if ([method.module isEqualToString:@"dom"]) {
+        /*
+        NSMutableArray *savedArray = [NSMutableArray array];
+        NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+        NSString *directory = [documentsPath stringByAppendingPathComponent:@"test1"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:directory]) {
+            NSArray *array = [NSKeyedUnarchiver unarchiveObjectWithFile:directory];
+            savedArray = [NSMutableArray arrayWithArray:array];
+        }
+        [savedArray addObject:method];
+        
+        [NSKeyedArchiver archiveRootObject:savedArray toFile:directory];
+        */
+        
+        /*
+        NSDictionary *dic = [method dataDesc];
+        NSMutableArray *savedDic = [NSMutableArray arrayWithArray:[[NSUserDefaults standardUserDefaults] objectForKey:@"dommethods"]];
+        [savedDic addObject:dic];
+        [[NSUserDefaults standardUserDefaults] setObject:savedDic forKey:@"dommethods"];*/
+    }
+    
     WX_FREE_FLIST(freeList, arguments.count);
 }
 

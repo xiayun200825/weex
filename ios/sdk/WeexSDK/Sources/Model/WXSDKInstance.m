@@ -21,6 +21,9 @@
 #import "WXLog.h"
 #import "WXView.h"
 #import "WXThreadSafeMutableDictionary.h"
+#import "WXBridgeMethod.h"
+#import "WXSDKManager.h"
+#import "WXModuleManager.h"
 
 NSString *const bundleUrlOptionKey = @"bundleUrl";
 
@@ -202,6 +205,35 @@ NSTimeInterval JSLibInitTime = 0;
         }
     });
 
+    /*
+    NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *directory = [documentsPath stringByAppendingPathComponent:@"test1"];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:directory]) {
+        NSArray *array = [NSKeyedUnarchiver unarchiveObjectWithFile:directory];
+        for (WXBridgeMethod *method in array) {
+            method.instance = self.instanceId;
+            [[WXSDKManager moduleMgr] dispatchMethod:method];
+            
+            if ([method.method isEqualToString:@"createFinish"]) {
+                break;
+            }
+        }
+    }*/
+    
+    /*
+    // dispatch method
+    NSArray *savedArray = [[NSUserDefaults standardUserDefaults] objectForKey:@"dommethods"];
+    if (savedArray && savedArray.count > 0) {
+        for (NSDictionary *dic in savedArray) {
+            WXBridgeMethod *method = [[WXBridgeMethod alloc] initWihData:dic];
+            method.instance = self.instanceId;
+            [[WXSDKManager moduleMgr] dispatchMethod:method];
+            if ([method.method isEqualToString:@"createFinish"]) {
+                break;
+            }
+        }
+    }*/
+    
     [[WXSDKManager bridgeMgr] createInstance:self.instanceId template:source options:dictionary data:data];
 
     WX_MONITOR_PERF_SET(WXPTBundleSize, [source lengthOfBytesUsingEncoding:NSUTF8StringEncoding], self);
