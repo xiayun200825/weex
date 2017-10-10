@@ -40,6 +40,9 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 
 @property (nonatomic, assign) BOOL hardCodeArea;
 
+@property (nonatomic, weak) WXSliderComponent *slider;
+@property (nonatomic, strong) NSMutableArray *childList;
+
 @end
 
 @implementation WXNestedResolver
@@ -47,30 +50,40 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 - (instancetype)initWithScrollParent:(WXNestedParentComponent *)parent {
     if (self = [super init]) {
         _scrollParent = parent;
+        _childList = [NSMutableArray array];
         _sliderMap = [NSMapTable strongToWeakObjectsMapTable];
         _sliderGroupMap = [NSMutableDictionary dictionary];
+        
+        //[self setup];
     }
     return self;
 }
 
-- (void)updateWithScrollChild:(WXNestedChildComponent *)child slider:(WXComponent *)slider {
+- (void)dealloc {
+    if (_slider) {
+        [_slider removeObserver:self forKeyPath:@"currentIndex"];
+    }
+}
+
+- (void)updateWithScrollChild:(WXNestedChildComponent *)child slider:(WXSliderComponent *)slider {
     if (!slider) {
         _scrollChild = child;
         [self setup];
         return;
     }
     
-    UIScrollView *sliderView = (UIScrollView *)slider.view;
-    if (!sliderView || ![sliderView isKindOfClass:[UIScrollView class]]) {
-        WXLogError(@"no slider view");
-        return;
+    if (!_slider) {
+        _slider = slider;
+        [_slider addObserver:self
+                  forKeyPath:@"currentIndex"
+                     options:NSKeyValueObservingOptionOld|NSKeyValueObservingOptionNew
+                     context:nil];
     }
     
-    if (sliderView.delegate && sliderView.delegate != self) {
-        //_tmpDelegate = sliderView.delegate;
-    }
-    sliderView.delegate = self;
+    [_childList addObject:child];
+    [self findScrollChild:_slider];
 
+    /*
     [_sliderMap setObject:slider forKey:slider.ref];
     if (!_sliderGroupMap[slider.ref]) {
         _sliderGroupMap[slider.ref] = [NSMutableArray array];
@@ -78,12 +91,39 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
     NSMutableArray *childArray = _sliderGroupMap[slider.ref];
     if (![childArray containsObject:child]) {
         [childArray addObject:child];
+    }*/
+}
+
+- (void)findScrollChild:(WXSliderComponent *)slider {
+    id indexObj, childObj;
+    objc_property_t indexProp = class_getProperty([WXSliderComponent class], "currentIndex");
+    if (indexProp != NULL) {
+        indexObj = [slider valueForKey:@"currentIndex"];
     }
     
-    CGRect frame = [child.view convertRect:child.view.bounds toView:sliderView];
-    if (CGRectIntersectsRect(sliderView.frame, frame)) {
-        _scrollChild = child;
-        [self setup];
+    objc_property_t childProp = class_getProperty([WXSliderComponent class], "childrenView");
+    if (childProp != NULL) {
+        childObj = [slider valueForKey:@"childrenView"];
+    }
+    
+    UIView *currentView = nil;
+    if (indexObj && childObj) {
+        currentView = [(NSArray *)childObj objectAtIndex:[indexObj integerValue]];
+        if (!currentView) {
+            return;
+        }
+        
+        for (WXNestedChildComponent *child in _childList) {
+            UIView *view = child.view;
+            while (view && view != slider.view) {
+                if (view == currentView) {
+                    _scrollChild = child;
+                    [self setup];
+                    return;
+                }
+                view = view.superview;
+            }
+        }
     }
 }
 
@@ -248,6 +288,12 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
     
     if (scrollView && _scrollingScroller != scrollView) {
         _scrollingScroller = scrollView;
+    }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context {
+    if ([keyPath isEqualToString:@"currentIndex"]) {
+        [self findScrollChild:_slider];
     }
 }
 

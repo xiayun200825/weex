@@ -9,6 +9,8 @@
 #import "WXNestedParentComponent.h"
 #import "WXNestedChildComponent.h"
 #import "WXNestedResolver.h"
+#import "WXSliderComponent.h"
+#import "WXCycleSliderComponent.h"
 
 @interface WXNestedParentComponent() <UIScrollViewDelegate>
 
@@ -25,13 +27,17 @@
     return self;
 }
 
-- (void)initNestedParent {
-    self.scrollResolver = [[WXNestedResolver alloc] initWithScrollParent:self];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(bindChild:) name:@"WXNestedChildBindingNotification" object:nil];
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
+- (void)initNestedParent {
+    self.scrollResolver = [[WXNestedResolver alloc] initWithScrollParent:self];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(bindChild:)
+                                                 name:@"WXNestedChildBindingNotification"
+                                               object:nil];
 }
 
 - (void)bindChild:(NSNotification *)notification {
@@ -46,16 +52,15 @@
     }
     
     NSString *sliderRef = notification.userInfo[@"slider"];
-    if (!sliderRef) {
+    if (!sliderRef || [WXUtility isBlankString:sliderRef]) {
         [self.scrollResolver updateWithScrollChild:child slider:nil];
         return;
     }
     
-    __block WXComponent *scroller;
+    __block WXSliderComponent *scroller;
     WXPerformBlockOnComponentThread(^{
-        
-        scroller = [self.weexInstance componentForRef:sliderRef];
-        if (!scroller) {
+        scroller = (WXSliderComponent *)[self.weexInstance componentForRef:sliderRef];
+        if (!scroller || ![scroller isKindOfClass:[WXSliderComponent class]]) {
             WXLogInfo(@"binding slide-group ref:%@ is specified, but no scroller found", sliderRef);
             return;
         }

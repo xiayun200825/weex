@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "WXNestedParentComponent.h"
 #import "WXNestedChildComponent.h"
+#import "WXSliderComponent.h"
 
 @interface WXNestedResolver : NSObject
 
@@ -18,6 +19,6 @@
 - (instancetype)initWithScrollParent:(WXNestedParentComponent *)parent;
 
 - (void)updateWithScrollChild:(WXNestedChildComponent *)child
-                       slider:(WXComponent *)slider;
+                       slider:(WXSliderComponent *)slider;
 
 @end

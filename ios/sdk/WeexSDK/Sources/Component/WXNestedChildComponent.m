@@ -12,25 +12,20 @@
 
 @interface WXNestedChildComponent()
 
-@property (nonatomic, copy) NSString *sliderRef;
-@property (nonatomic, weak) WXComponent *slider;
-@property (nonatomic, weak) UIScrollView *sliderView;
-@property (nonatomic, weak) id<UIScrollViewDelegate> tmpDelegate;
-
 @end
 
 @implementation WXNestedChildComponent
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [self postMessage];
+    [self bindParent];
 }
 
 - (void)updateAttributes:(NSDictionary *)attributes {
-    [self postMessage];
+    [self bindParent];
 }
 
-- (void)postMessage {
+- (void)bindParent {
     NSMutableDictionary *userInfo = [@{@"child":self,@"wxinstance":self.weexInstance} mutableCopy];
     if (self.attributes[@"slideGroup"]) {
         [userInfo setObject:self.attributes[@"slideGroup"] forKey:@"slider"];
