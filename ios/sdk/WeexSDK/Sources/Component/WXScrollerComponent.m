@@ -159,7 +159,7 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
     scrollView.alwaysBounceVertical = _alwaysScrollableVertical;
     if (WX_SYS_VERSION_GREATER_THAN_OR_EQUAL_TO(@"11.0")) {
         // now use the runtime to forbid the contentInset being Adjusted
-        scrollView.contentInsetAdjustmentBehavior = 2;
+        //scrollView.contentInsetAdjustmentBehavior = 2;
     }
     
     if (self.ancestorScroller) {
@@ -511,9 +511,10 @@ WX_EXPORT_METHOD(@selector(resetLoadmore))
         self.onScroll(scrollView);
     }
     if (_scrollEvent) {
+        /*
         NSDictionary *contentSizeData = [[NSDictionary alloc] initWithObjectsAndKeys:[NSNumber numberWithFloat:scrollView.contentSize.width / scaleFactor],@"width",[NSNumber numberWithFloat:scrollView.contentSize.height / scaleFactor],@"height", nil];
         //contentOffset values are replaced by (-contentOffset.x,-contentOffset.y) ,in order to be consistent with Android client.
-        NSDictionary *contentOffsetData = [[NSDictionary alloc] initWithObjectsAndKeys:[NSNumber numberWithFloat:-scrollView.contentOffset.x / scaleFactor],@"x",[NSNumber numberWithFloat:-scrollView.contentOffset.y / scaleFactor],@"y", nil];
+        NSDictionary *contentOffsetData = [[NSDictionary alloc] initWithObjectsAndKeys:[NSNumber numberWithFloat:-scrollView.contentOffset.x / scaleFactor],@"x",[NSNumber numberWithFloat:-scrollView.contentOffset.y / scaleFactor],@"y", nil];*/
         CGFloat distance = 0;
         if (_scrollDirection == WXScrollDirectionHorizontal) {
             distance = scrollView.contentOffset.x - _lastScrollEventFiredOffset.x;

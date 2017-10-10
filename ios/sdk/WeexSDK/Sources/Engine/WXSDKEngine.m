@@ -112,6 +112,8 @@
     [self registerComponent:@"recycle-list" withClass:NSClassFromString(@"WXRecycleListComponent")];
     [self registerComponent:@"cell-slot" withClass:NSClassFromString(@"WXCellSlotComponent") withProperties: @{@"append":@"tree", @"isTemplate":@YES}];
     
+    [self registerComponent:@"nested-parent" withClass:NSClassFromString(@"WXNestedParentComponent")];
+    [self registerComponent:@"nested-child" withClass:NSClassFromString(@"WXNestedChildComponent")];
 }
 
 + (void)registerComponent:(NSString *)name withClass:(Class)clazz

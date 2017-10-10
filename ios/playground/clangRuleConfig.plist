@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>methodBodyMaxLines</key>
+	<integer>200</integer>
+	<key>excludePath</key>
+	<array>
+		<string>Pods1</string>
+		<string>abc1</string>
+	</array>
+	<key>whiteList</key>
+	<dict>
+		<key>name_start_with_three_uppercase</key>
+		<array/>
+		<key>method_start_with_lowercase</key>
+		<array>
+			<string>ABCD</string>
+		</array>
+		<key>param_start_with_lowercase</key>
+		<array>
+			<string>ABCD</string>
+		</array>
+		<key>var_start_with_lowercase</key>
+		<array>
+			<string>ABCD</string>
+			<string>EEE</string>
+		</array>
+		<key>method_param_less_than_three_char</key>
+		<array>
+			<string>a</string>
+			<string>b</string>
+			<string>c</string>
+		</array>
+	</dict>
+	<key>ruleSeverity</key>
+	<dict>
+		<key>enum_have_same_prefix</key>
+		<string>Error</string>
+		<key>method_name_contains_ptr_or_pointer</key>
+		<string>Warning</string>
+		<key>method_input_param_contain_attribute</key>
+		<string>Ignored</string>
+		<key>name_start_with_three_uppercase</key>
+		<string>Ignored</string>
+		<key>name_contains_system_prefix</key>
+		<string>Ignored</string>
+	</dict>
+</dict>
+</plist>
