@@ -28,8 +28,8 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 
 @property (nonatomic, weak) UIScrollView *outerScroller;
 @property (nonatomic, weak) UIScrollView *innerScroller;
-@property (nonatomic, strong) NSMapTable<NSString *, WXComponent *> *sliderMap;
-@property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableArray<WXNestedChildComponent *> *> *sliderGroupMap;
+@property (nonatomic, strong) NSMapTable<NSString *, WXSliderComponent *> *sliderMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSHashTable<WXNestedChildComponent *> *> *sliderGroupMap;
 
 @property (nonatomic, weak) UIScrollView *controllingScroller;
 @property (nonatomic, weak) UIScrollView *scrollingScroller;
@@ -40,9 +40,6 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 
 @property (nonatomic, assign) BOOL hardCodeArea;
 
-@property (nonatomic, weak) WXSliderComponent *slider;
-@property (nonatomic, strong) NSMutableArray *childList;
-
 @end
 
 @implementation WXNestedResolver
@@ -50,7 +47,6 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 - (instancetype)initWithScrollParent:(WXNestedParentComponent *)parent {
     if (self = [super init]) {
         _scrollParent = parent;
-        _childList = [NSMutableArray array];
         _sliderMap = [NSMapTable strongToWeakObjectsMapTable];
         _sliderGroupMap = [NSMutableDictionary dictionary];
     }
@@ -58,8 +54,9 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 }
 
 - (void)dealloc {
-    if (_slider) {
-        [_slider removeObserver:self forKeyPath:@"currentIndex"];
+    for (NSString *ref in _sliderMap) {
+        WXSliderComponent *slider = [_sliderMap objectForKey:ref];
+        [slider removeObserver:self forKeyPath:@"currentIndex"];
     }
 }
 
@@ -70,26 +67,20 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
         return;
     }
     
-    if (!_slider) {
-        _slider = slider;
-        [_slider addObserver:self
+    WXSliderComponent *curSlider = [_sliderMap objectForKey:slider.ref];
+    NSHashTable *childList = [_sliderGroupMap objectForKey:slider.ref];
+    if (!curSlider) {
+        [slider addObserver:self
                   forKeyPath:@"currentIndex"
                      options:NSKeyValueObservingOptionOld|NSKeyValueObservingOptionNew
                      context:nil];
+        [_sliderMap setObject:slider forKey:slider.ref];
+        childList = [NSHashTable weakObjectsHashTable];
+        [_sliderGroupMap setObject:childList forKey:slider.ref];
     }
+    [childList addObject:child];
     
-    [_childList addObject:child];
-    [self findScrollChild:_slider];
-
-    /*
-    [_sliderMap setObject:slider forKey:slider.ref];
-    if (!_sliderGroupMap[slider.ref]) {
-        _sliderGroupMap[slider.ref] = [NSMutableArray array];
-    }
-    NSMutableArray *childArray = _sliderGroupMap[slider.ref];
-    if (![childArray containsObject:child]) {
-        [childArray addObject:child];
-    }*/
+    [self findScrollChild:slider];
 }
 
 - (void)findScrollChild:(WXSliderComponent *)slider {
@@ -111,7 +102,8 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
             return;
         }
         
-        for (WXNestedChildComponent *child in _childList) {
+        NSHashTable *childList = [_sliderGroupMap objectForKey:slider.ref];
+        for (WXNestedChildComponent *child in childList) {
             UIView *view = child.view;
             while (view && view != slider.view) {
                 if (view == currentView) {
@@ -290,7 +282,8 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context {
     if ([keyPath isEqualToString:@"currentIndex"]) {
-        [self findScrollChild:_slider];
+        WXSliderComponent *slider = (WXSliderComponent *)object;
+        [self findScrollChild:slider];
     }
 }
 
