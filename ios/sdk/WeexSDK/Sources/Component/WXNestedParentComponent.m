@@ -11,6 +11,7 @@
 #import "WXNestedResolver.h"
 #import "WXSliderComponent.h"
 #import "WXCycleSliderComponent.h"
+#import "WXEmbedComponent.h"
 
 @interface WXNestedParentComponent() <UIScrollViewDelegate>
 
@@ -42,12 +43,12 @@
 
 - (void)bindChild:(NSNotification *)notification {
     WXSDKInstance *instance = notification.userInfo[@"wxinstance"];
-    if (instance != self.weexInstance) {
+    if (!instance || ![self sameWeexInstance:instance]) {
         return;
     }
     
     WXNestedChildComponent *child = notification.userInfo[@"child"];
-    if (!child) {
+    if (!child || ![self isChildComponent:child]) {
         return;
     }
     
@@ -58,17 +59,67 @@
     }
     
     __block WXSliderComponent *scroller;
+    __weak typeof(self) welf = self;
+    __weak WXSDKInstance *weakInstance = instance;
     WXPerformBlockOnComponentThread(^{
-        scroller = (WXSliderComponent *)[self.weexInstance componentForRef:sliderRef];
+        scroller = (WXSliderComponent *)[welf findComponentByRef:sliderRef childInstance:weakInstance];
         if (!scroller || ![scroller isKindOfClass:[WXSliderComponent class]]) {
             WXLogInfo(@"binding slide-group ref:%@ is specified, but no scroller found", sliderRef);
             return;
         }
         
         WXPerformBlockOnMainThread(^{
-            [self.scrollResolver updateWithScrollChild:child slider:scroller];
+            [welf.scrollResolver updateWithScrollChild:child slider:scroller];
         });
     });
+}
+
+- (BOOL)sameWeexInstance:(WXSDKInstance *)childInstance {
+    WXSDKInstance *instance = childInstance;
+    while (instance) {
+        if (instance == self.weexInstance) {
+            return YES;
+        }
+        instance = instance.parentInstance;
+    }
+    return NO;
+}
+
+- (BOOL)isChildComponent:(WXComponent *)child {
+    if (child.weexInstance != self.weexInstance) {
+        return YES;
+    }
+    
+    WXComponent *component = child;
+    while (component) {
+        if (component == self) {
+            return YES;
+        }
+        component = component.supercomponent;
+    }
+    return NO;
+}
+
+- (WXComponent *)findComponentByRef:(NSString *)ref childInstance:(WXSDKInstance *)childInstance {
+    if (![ref containsString:@"-"]) {
+        return [self.weexInstance componentForRef:ref];
+    }
+    
+    NSArray *splits = [ref componentsSeparatedByString:@"-"];
+    if (splits.count >= 2) {
+        NSString *instanceId = splits[0];
+        NSString *componentRef = splits[1];
+        
+        WXSDKInstance *instance = childInstance;
+        while (instance && instance != self.weexInstance) {
+            if ([instanceId isEqualToString:instance.instanceId]) {
+                return [self.weexInstance componentForRef:componentRef];
+            }
+            instance = instance.parentInstance;
+        }
+    }
+    
+    return nil;
 }
 
 @end
