@@ -188,10 +188,12 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
     }
 }
 
-- (WXNestedScrollSection)scrollSection:(CGFloat)offsetY {
+- (WXNestedScrollSection)scrollSection:(CGFloat)offsetY direction:(WXNestedScrollDirection)direction {
     //CGFloat y0 = 0;
     CGFloat y1 = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller].origin.y - self.offsetY;
-    CGFloat y2 = y1 + _innerScroller.contentSize.height - _innerScroller.frame.size.height;
+    CGFloat y2 = y1 + _innerScroller.contentSize.height
+                    + _innerScroller.contentInset.top + _innerScroller.contentInset.bottom
+                    - _innerScroller.frame.size.height;
     //CGFloat y3 = _outerScroller.contentSize.height - _outerScroller.frame.size.height + (_innerScroller.contentSize.height - _innerScroller.frame.size.height);
     
     if (offsetY < y1) {
@@ -205,7 +207,9 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 
 - (CGFloat)currentScrollDistance:(CGFloat)offsetY nextOffset:(CGFloat)nextOffsetY {
     CGFloat y1 = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller].origin.y - self.offsetY;
-    CGFloat y2 = y1 + _innerScroller.contentSize.height - _innerScroller.frame.size.height;
+    CGFloat y2 = y1 + _innerScroller.contentSize.height
+                    + _innerScroller.contentInset.top + _innerScroller.contentInset.bottom
+                    - _innerScroller.frame.size.height;
     
     if (nextOffsetY > offsetY) {
         if (offsetY <= y1 && nextOffsetY > y1) {
