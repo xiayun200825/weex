@@ -53,8 +53,6 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
         _childList = [NSMutableArray array];
         _sliderMap = [NSMapTable strongToWeakObjectsMapTable];
         _sliderGroupMap = [NSMutableDictionary dictionary];
-        
-        //[self setup];
     }
     return self;
 }
@@ -139,7 +137,6 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 - (void)reset {
     _controllingScroller = nil;
     _scrollingScroller = nil;
-    _offsetY = _scrollParent.offsetY;
     _actualOffsetY = 0;
     _hardCodeArea = NO;
 }
@@ -201,7 +198,7 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 
 - (WXNestedScrollSection)scrollSection:(CGFloat)offsetY {
     //CGFloat y0 = 0;
-    CGFloat y1 = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller].origin.y;
+    CGFloat y1 = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller].origin.y - self.offsetY;
     CGFloat y2 = y1 + _innerScroller.contentSize.height - _innerScroller.frame.size.height;
     //CGFloat y3 = _outerScroller.contentSize.height - _outerScroller.frame.size.height + (_innerScroller.contentSize.height - _innerScroller.frame.size.height);
     
@@ -215,7 +212,7 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
 }
 
 - (CGFloat)currentScrollDistance:(CGFloat)offsetY nextOffset:(CGFloat)nextOffsetY {
-    CGFloat y1 = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller].origin.y;
+    CGFloat y1 = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller].origin.y - self.offsetY;
     CGFloat y2 = y1 + _innerScroller.contentSize.height - _innerScroller.frame.size.height;
     
     if (nextOffsetY > offsetY) {
@@ -295,6 +292,10 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollArea) {
     if ([keyPath isEqualToString:@"currentIndex"]) {
         [self findScrollChild:_slider];
     }
+}
+
+- (CGFloat)offsetY {
+    return _scrollParent.offsetY;
 }
 
 @end

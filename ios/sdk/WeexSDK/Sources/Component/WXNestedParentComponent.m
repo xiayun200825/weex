@@ -23,6 +23,7 @@
 
 - (instancetype)initWithRef:(NSString *)ref type:(NSString *)type styles:(NSDictionary *)styles attributes:(NSDictionary *)attributes events:(NSArray *)events weexInstance:(WXSDKInstance *)weexInstance {
     if (self = [super initWithRef:ref type:type styles:styles attributes:attributes events:events weexInstance:weexInstance]) {
+        [self updateNestedOffset:attributes];
         [self initNestedParent];
     }
     return self;
@@ -30,6 +31,10 @@
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)updateAttributes:(NSDictionary *)attributes {
+    [self updateNestedOffset:attributes];
 }
 
 - (void)initNestedParent {
@@ -111,15 +116,24 @@
         NSString *componentRef = splits[1];
         
         WXSDKInstance *instance = childInstance;
-        while (instance && instance != self.weexInstance) {
+        while (instance) {
             if ([instanceId isEqualToString:instance.instanceId]) {
-                return [self.weexInstance componentForRef:componentRef];
+                return [instance componentForRef:componentRef];
+            }
+            if (instance == self.weexInstance) {
+                break;
             }
             instance = instance.parentInstance;
         }
     }
     
     return nil;
+}
+
+- (void)updateNestedOffset:(NSDictionary *)attributes {
+    if (attributes[@"offset"]) {
+        self.offsetY = [attributes[@"offset"] floatValue];
+    }
 }
 
 @end
