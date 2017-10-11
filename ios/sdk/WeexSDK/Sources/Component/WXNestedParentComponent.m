@@ -12,6 +12,7 @@
 #import "WXSliderComponent.h"
 #import "WXCycleSliderComponent.h"
 #import "WXEmbedComponent.h"
+#import "WXUtility.h"
 
 @interface WXNestedParentComponent() <UIScrollViewDelegate>
 
@@ -132,7 +133,7 @@
 
 - (void)updateNestedOffset:(NSDictionary *)attributes {
     if (attributes[@"offset"]) {
-        self.offsetY = [attributes[@"offset"] floatValue];
+        self.offsetY = [attributes[@"offset"] floatValue] * [WXUtility defaultPixelScaleFactor];
     }
 }
 
