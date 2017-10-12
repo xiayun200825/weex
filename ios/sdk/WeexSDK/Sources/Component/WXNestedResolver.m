@@ -13,30 +13,17 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
     WXNestedScrollDirectionDown
 };
 
-@interface WXNestedScrollResult : NSObject
-
-@property (nonatomic, weak) UIScrollView *scrollView;
-@property (nonatomic, assign) CGFloat offset;
-
-+ (instancetype)scrollResult:(UIScrollView *)scrollView offset:(CGFloat)offset;
-
-@end
-
-@implementation WXNestedScrollResult
-
-+ (instancetype)scrollResult:(UIScrollView *)scrollView offset:(CGFloat)offset {
-    WXNestedScrollResult *result = [WXNestedScrollResult new];
-    result.scrollView = scrollView;
-    result.offset = offset;
-    return result;
-}
-
-@end
+typedef struct {
+    CGFloat outerOffset;
+    CGFloat innerOffset;
+} ScrollResult;
 
 @interface WXNestedResolver() <UIScrollViewDelegate>
 
 @property (nonatomic, weak) UIScrollView *outerScroller;
 @property (nonatomic, weak) UIScrollView *innerScroller;
+@property (nonatomic, weak) id<UIScrollViewDelegate> outerDelegate;
+@property (nonatomic, weak) id<UIScrollViewDelegate> innerDelegate;
 @property (nonatomic, strong) NSMapTable<NSString *, WXSliderComponent *> *sliderMap;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSHashTable<WXNestedChildComponent *> *> *sliderGroupMap;
 
@@ -65,6 +52,19 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
     for (NSString *ref in _sliderMap) {
         WXSliderComponent *slider = [_sliderMap objectForKey:ref];
         [slider removeObserver:self forKeyPath:@"currentIndex"];
+    }
+    
+    [self restoreScrollerDelegate:_outerScroller tmpDelegate:_outerDelegate];
+    [self restoreScrollerDelegate:_innerScroller tmpDelegate:_innerDelegate];
+}
+
+- (void)restoreScrollerDelegate:(UIScrollView *)scrollView tmpDelegate:(id<UIScrollViewDelegate>)tmpDelegate {
+    if (scrollView) {
+        if (tmpDelegate && tmpDelegate != self) {
+            scrollView.delegate = tmpDelegate;
+        } else {
+            scrollView.delegate = nil;
+        }
     }
 }
 
@@ -126,10 +126,19 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
 }
 
 - (void)setup {
+    [self restoreScrollerDelegate:_outerScroller tmpDelegate:_outerDelegate];
+    [self restoreScrollerDelegate:_innerScroller tmpDelegate:_innerDelegate];
+    
     _outerScroller = (UIScrollView *)_scrollParent.view;
     _innerScroller = (UIScrollView *)_scrollChild.view;
-    _outerScroller.delegate = self;
-    _innerScroller.delegate = self;
+    if (_outerScroller.delegate && _outerScroller.delegate != self) {
+        _outerDelegate = _outerScroller.delegate;
+        _outerScroller.delegate = self;
+    }
+    if (_innerScroller.delegate && _innerScroller.delegate != self) {
+        _innerDelegate = _innerScroller.delegate;
+        _innerScroller.delegate = self;
+    }
     
     [self reset];
 }
@@ -151,12 +160,22 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
     }
     
     _hardCodeArea = YES;
-    NSArray<WXNestedScrollResult *> *scrollResults = [self getScrollResults];
-    for (WXNestedScrollResult *result in scrollResults) {
-        CGPoint offset = result.scrollView.contentOffset;
-        offset.y += result.offset;
-        [result.scrollView setContentOffset:offset];
+    ScrollResult result = [self getScrollResults];
+    
+    // inner
+    CGPoint offset = _innerScroller.contentOffset;
+    offset.y = result.innerOffset;
+    if (!CGPointEqualToPoint(offset, _innerScroller.contentOffset)) {
+        [_innerScroller setContentOffset:offset];
     }
+
+    // outer
+    offset = _outerScroller.contentOffset;
+    offset.y = result.outerOffset;
+    if (!CGPointEqualToPoint(offset, _outerScroller.contentOffset)) {
+        [_outerScroller setContentOffset:offset];
+    }
+    
     _actualOffsetY = _controllingScroller.contentOffset.y;
     _hardCodeArea = NO;
 }
@@ -183,17 +202,13 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
     }
 }
 
-- (NSArray<WXNestedScrollResult *> *)getScrollResults {
-    NSMutableArray *results = [NSMutableArray array];
+- (ScrollResult)getScrollResults {
     WXNestedScrollDirection direction = [self scrollDirection];
     
     CGFloat outerOffsetY = (_controllingScroller == _outerScroller ? _actualOffsetY : _outerScroller.contentOffset.y);
     CGFloat innerOffsetY = (_controllingScroller == _innerScroller ? _actualOffsetY : _innerScroller.contentOffset.y);
     CGFloat deltaOffsetY = _controllingScroller.contentOffset.y - _actualOffsetY;
     CGRect innerRect = [_innerScroller convertRect:_innerScroller.bounds toView:_outerScroller];
-    
-    WXNestedScrollResult *controller = [WXNestedScrollResult scrollResult:_controllingScroller offset:-deltaOffsetY];
-    [results addObject:controller];
     
     if (direction == WXNestedScrollDirectionUp) {
         CGFloat y1 = innerRect.origin.y - self.offsetY;
@@ -206,29 +221,23 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
         
         // outer head
         if (outerOffsetY < y1) {
-            WXNestedScrollResult *outerHead = [WXNestedScrollResult scrollResult:_outerScroller
-                                                                          offset:MIN(y1 - outerOffsetY, deltaOffsetY)];
-            [results addObject:outerHead];
-            outerOffsetY += outerHead.offset;
-            deltaOffsetY -= outerHead.offset;
+            CGFloat offsetY = MIN(y1 - outerOffsetY, deltaOffsetY);
+            outerOffsetY += offsetY;
+            deltaOffsetY -= offsetY;
         }
         
         // inner
         if (deltaOffsetY > 0 && innerOffsetY < y2) {
-            WXNestedScrollResult *inner = [WXNestedScrollResult scrollResult:_innerScroller
-                                                                      offset:MIN(y2 - innerOffsetY, deltaOffsetY)];
-            [results addObject:inner];
-            innerOffsetY += inner.offset;
-            deltaOffsetY -= inner.offset;
+            CGFloat offsetY = MIN(y2 - innerOffsetY, deltaOffsetY);
+            innerOffsetY += offsetY;
+            deltaOffsetY -= offsetY;
         }
         
         // outer bottom
         if (deltaOffsetY > 0) {
-            WXNestedScrollResult *outerBottom = [WXNestedScrollResult scrollResult:_outerScroller
-                                                                            offset:MIN(y3 - outerOffsetY, deltaOffsetY)];
-            [results addObject:outerBottom];
-            outerOffsetY += outerBottom.offset;
-            deltaOffsetY -= outerBottom.offset;
+            CGFloat offsetY = MIN(y3 - outerOffsetY, deltaOffsetY);
+            outerOffsetY += offsetY;
+            deltaOffsetY -= offsetY;
         }
     } else {
         CGFloat y1 = innerRect.origin.y + innerRect.size.height - _outerScroller.frame.size.height;
@@ -237,33 +246,30 @@ typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
         
         // outer bottom
         if (outerOffsetY > y1) {
-            WXNestedScrollResult *outerBottom = [WXNestedScrollResult scrollResult:_outerScroller
-                                                                            offset:MAX(y1 - outerOffsetY, deltaOffsetY)];
-            [results addObject:outerBottom];
-            outerOffsetY += outerBottom.offset;
-            deltaOffsetY -= outerBottom.offset;
+            CGFloat offsetY = MAX(y1 - outerOffsetY, deltaOffsetY);
+            outerOffsetY += offsetY;
+            deltaOffsetY -= offsetY;
         }
         
         // inner
         if (deltaOffsetY < 0 && innerOffsetY > y2) {
-            WXNestedScrollResult *inner = [WXNestedScrollResult scrollResult:_innerScroller
-                                                                      offset:MAX(y2 - innerOffsetY, deltaOffsetY)];
-            [results addObject:inner];
-            innerOffsetY += inner.offset;
-            deltaOffsetY -= inner.offset;
+            CGFloat offsetY = MAX(y2 - innerOffsetY, deltaOffsetY);
+            innerOffsetY += offsetY;
+            deltaOffsetY -= offsetY;
         }
         
         // outer head
         if (deltaOffsetY < 0) {
-            WXNestedScrollResult *outerHead = [WXNestedScrollResult scrollResult:_outerScroller
-                                                                          offset:MAX(y3 - outerOffsetY, deltaOffsetY)];
-            [results addObject:outerHead];
-            outerOffsetY += outerHead.offset;
-            deltaOffsetY -= outerHead.offset;
+            CGFloat offsetY = MAX(y3 - outerOffsetY, deltaOffsetY);
+            outerOffsetY += offsetY;
+            deltaOffsetY -= offsetY;
         }
     }
     
-    return [results copy];
+    ScrollResult result;
+    result.innerOffset = innerOffsetY;
+    result.outerOffset = outerOffsetY;
+    return result;
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context {
