@@ -7,6 +7,7 @@
 //
 
 #import "WXNestedResolver.h"
+#import <pop/POP.h>
 
 typedef NS_ENUM(NSUInteger, WXNestedScrollDirection) {
     WXNestedScrollDirectionUp = 0,
@@ -253,9 +254,10 @@ typedef struct {
         
         // outer bottom
         if (deltaOffsetY > 0) {
-            CGFloat offsetY = MIN(y3 - outerOffsetY, deltaOffsetY);
+            CGFloat offsetY = (_controllingScroller == _outerScroller ? deltaOffsetY : MIN(y3 - outerOffsetY, deltaOffsetY));
             outerOffsetY += offsetY;
             deltaOffsetY -= offsetY;
+            
         }
     } else {
         CGFloat y1 = innerRect.origin.y + innerRect.size.height - _outerScroller.frame.size.height;
@@ -278,7 +280,7 @@ typedef struct {
         
         // outer head
         if (deltaOffsetY < 0) {
-            CGFloat offsetY = MAX(y3 - outerOffsetY, deltaOffsetY);
+            CGFloat offsetY = (_controllingScroller == _outerScroller ? deltaOffsetY : MAX(y3 - outerOffsetY, deltaOffsetY));
             outerOffsetY += offsetY;
             deltaOffsetY -= offsetY;
         }

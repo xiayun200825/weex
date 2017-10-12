@@ -9,6 +9,8 @@ def common
     pod 'SocketRocket', '0.4.2'
     pod 'ATSDK-Weex', '0.0.1'
     
+    pod 'pop', '~>1.0'
+    
     # WeexGcanvas is added by Weex Plugin, more info at https://market.dotwe.org/ext/list.htm
     pod 'WeexGcanvas'
 end
