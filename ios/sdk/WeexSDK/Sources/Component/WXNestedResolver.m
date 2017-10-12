@@ -161,12 +161,17 @@ typedef struct {
     
     _hardCodeArea = YES;
     ScrollResult result = [self getScrollResults];
+    BOOL controllerForcedScroll = NO;
     
     // inner
     CGPoint offset = _innerScroller.contentOffset;
     offset.y = result.innerOffset;
     if (!CGPointEqualToPoint(offset, _innerScroller.contentOffset)) {
         [_innerScroller setContentOffset:offset];
+        [_innerDelegate scrollViewDidScroll:_innerScroller];
+        if (_innerScroller == _controllingScroller) {
+            controllerForcedScroll = YES;
+        }
     }
 
     // outer
@@ -174,8 +179,16 @@ typedef struct {
     offset.y = result.outerOffset;
     if (!CGPointEqualToPoint(offset, _outerScroller.contentOffset)) {
         [_outerScroller setContentOffset:offset];
+        [_outerDelegate scrollViewDidScroll:_outerScroller];
+        if (_outerScroller == _controllingScroller) {
+            controllerForcedScroll = YES;
+        }
     }
     
+    if (!controllerForcedScroll) {
+        id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+        [delegate scrollViewDidScroll:_controllingScroller];
+    }
     _actualOffsetY = _controllingScroller.contentOffset.y;
     _hardCodeArea = NO;
 }
@@ -190,6 +203,11 @@ typedef struct {
     }
     
     _actualOffsetY = _controllingScroller.contentOffset.y;
+    
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewWillBeginDragging:)]) {
+        [delegate scrollViewWillBeginDragging:_controllingScroller];
+    }
 }
 
 #pragma mark - private methods
@@ -281,6 +299,66 @@ typedef struct {
 
 - (CGFloat)offsetY {
     return _scrollParent.offsetY;
+}
+
+#pragma mark - Other UIScrollViewDelegate
+- (void)scrollViewWillEndDragging:(UIScrollView *)scrollView withVelocity:(CGPoint)velocity targetContentOffset:(inout CGPoint *)targetContentOffset {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewWillEndDragging:withVelocity:targetContentOffset:)]) {
+        [delegate scrollViewWillEndDragging:_controllingScroller withVelocity:velocity targetContentOffset:targetContentOffset];
+    }
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewDidEndDragging:willDecelerate:)]) {
+        [delegate scrollViewDidEndDragging:_controllingScroller willDecelerate:decelerate];
+    }
+}
+
+- (void)scrollViewWillBeginDecelerating:(UIScrollView *)scrollView {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewWillBeginDecelerating:)]) {
+        [delegate scrollViewWillBeginDecelerating:_controllingScroller];
+    }
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewDidEndDecelerating:)]) {
+        [delegate scrollViewDidEndDecelerating:_controllingScroller];
+    }
+}
+
+- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewDidEndScrollingAnimation:)]) {
+        [delegate scrollViewDidEndScrollingAnimation:_controllingScroller];
+    }
+}
+
+- (BOOL)scrollViewShouldScrollToTop:(UIScrollView *)scrollView {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewShouldScrollToTop:)]) {
+        return [delegate scrollViewShouldScrollToTop:_controllingScroller];
+    }
+    return YES;
+}
+
+- (void)scrollViewDidScrollToTop:(UIScrollView *)scrollView {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewDidScrollToTop:)]) {
+        return [delegate scrollViewDidScrollToTop:_controllingScroller];
+    }
+}
+
+- (void)scrollViewDidChangeAdjustedContentInset:(UIScrollView *)scrollView {
+    id<UIScrollViewDelegate> delegate = (_controllingScroller == _innerScroller ? _innerDelegate : _outerDelegate);
+    if ([delegate respondsToSelector:@selector(scrollViewDidChangeAdjustedContentInset:)]) {
+        if (@available(iOS 11.0, *)) {
+            return [delegate scrollViewDidChangeAdjustedContentInset:_controllingScroller];
+        }
+    }
 }
 
 @end
